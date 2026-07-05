@@ -1,0 +1,10 @@
+#!/usr/bin/env xdg-open
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Stamp Photos
+Comment=Add date and children's ages to photos
+Exec=bash -c 'cd "$(dirname "%k")" && bash run.sh; read -p "Press Enter to exit..."'
+Terminal=true
+Icon=/home/harrison/Documents/GitHub/PhotoTimestamp/icon.svg
+Categories=Utility;

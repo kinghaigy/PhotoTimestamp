@@ -1,0 +1,12 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# GUI preferences (machine-specific)
+.gui_prefs.json
+
+# Photos (user data, not part of the project)
+photos/
+photos_stamped/
