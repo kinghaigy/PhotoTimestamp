@@ -3,7 +3,7 @@
 photo_timestamp.py
 
 Recursively processes images in a source folder, reading the EXIF date taken
-and stamping it onto the bottom-right corner of each image (25% of image width).
+and stamping it onto the bottom-right corner of each image.
 Optionally prints children's names with their age in years and months at the time
 the photo was taken.
 
@@ -23,7 +23,7 @@ from datetime import date, datetime
 from pathlib import Path
 
 try:
-    from PIL import Image, ImageDraw, ImageFont
+    from PIL import Image, ImageDraw, ImageFont, ImageOps
 except ImportError:
     sys.exit("Pillow is required. Install it with: pip install Pillow")
 
@@ -142,7 +142,27 @@ def stamp_image(
     Returns True on success.
     """
     try:
-        img = Image.open(image_path).convert("RGBA")
+        src_img = Image.open(image_path)
+        source_format = src_img.format
+        source_exif = None
+
+        # Normalize orientation in raw EXIF bytes so viewers don't rotate again.
+        raw_exif = src_img.info.get("exif")
+        if raw_exif:
+            try:
+                exif_dict = piexif.load(raw_exif)
+                exif_dict.setdefault("0th", {})[piexif.ImageIFD.Orientation] = 1
+                source_exif = piexif.dump(exif_dict)
+            except Exception:
+                source_exif = raw_exif
+        else:
+            source_exif_obj = src_img.getexif()
+            if source_exif_obj:
+                source_exif_obj[0x0112] = 1
+                source_exif = source_exif_obj.tobytes()
+
+        source_quantization = getattr(src_img, "quantization", None)
+        img = ImageOps.exif_transpose(src_img).convert("RGBA")
     except Exception as e:
         print(f"  Skipping {image_path.name}: cannot open image ({e})", file=sys.stderr)
         return False
@@ -154,9 +174,10 @@ def stamp_image(
 
     img_w, img_h = img.size
 
-    # Target font size: text block should be ~33% of image width
-    # We fit the date line at full target width and scale accordingly.
-    target_text_width = img_w * 0.33
+    # Size against the short edge so portrait/landscape orientations
+    # produce a similar visual text size.
+    short_edge = min(img_w, img_h)
+    font_size_px = max(14, int(short_edge * 0.0235))
 
     # Build the text lines
     date_line = f"{photo_date.day}/{photo_date.month}/{photo_date.year}"
@@ -168,30 +189,8 @@ def stamp_image(
 
     all_lines = [date_line] + age_lines
 
-    # Binary-search for the right font size so the longest line is ~33% img width.
-    # Always size against ALL children (using a fixed representative age) so the font
-    # stays consistent regardless of how many children are visible in a given photo.
-    sizing_lines = [date_line] + [age_string(name, 10, 10) for name, _ in children]
-    longest_line = max(sizing_lines, key=len)
-    lo, hi = 6, max(img_h, img_w)
-    font = load_font(lo)
-    for _ in range(20):  # 20 iterations is plenty for binary search
-        mid = (lo + hi) // 2
-        candidate = load_font(mid)
-        # Measure longest line width
-        try:
-            bbox = candidate.getbbox(longest_line)
-            line_w = bbox[2] - bbox[0]
-        except AttributeError:
-            # PIL default font
-            line_w = len(longest_line) * mid // 2
-        if line_w < target_text_width:
-            lo = mid
-            font = candidate
-        else:
-            hi = mid
-        if hi - lo <= 1:
-            break
+    # Font size is fixed from the image short edge.
+    font = load_font(font_size_px)
 
     # Measure all lines with chosen font
     line_sizes = []
@@ -206,16 +205,18 @@ def stamp_image(
         line_sizes.append((lw, lh))
 
     line_height = max(h for _, h in line_sizes)
-    line_spacing = int(line_height * 0.5)
+    line_spacing = max(2, int(line_height * 0.4))
     total_text_h = line_height * len(all_lines) + line_spacing * (len(all_lines) - 1)
     max_line_w = max(w for w, _ in line_sizes)
 
-    margin = int(img_w * 0.01)  # 1% margin from edges
+    margin = max(6, int(short_edge * 0.01))  # 1% of short edge, with a small floor
 
     # Semi-transparent background rectangle
-    pad = int(line_height * 0.2)
-    rect_x1 = img_w - max_line_w - margin - pad * 2
-    rect_y1 = img_h - total_text_h - margin - pad * 2
+    pad_x = max(3, int(line_height * 0.2))
+    pad_top = max(3, int(line_height * 0.2))
+    pad_bottom = max(4, int(line_height * 0.6))
+    rect_x1 = img_w - max_line_w - margin - pad_x * 2
+    rect_y1 = img_h - total_text_h - margin - pad_top - pad_bottom
     rect_x2 = img_w - margin
     rect_y2 = img_h - margin
 
@@ -227,9 +228,9 @@ def stamp_image(
     )
 
     # Draw each line right-aligned inside the rectangle
-    y = rect_y1 + pad
+    y = rect_y1 + pad_top
     for i, (line, (lw, lh)) in enumerate(zip(all_lines, line_sizes)):
-        x = rect_x2 - pad - lw
+        x = rect_x2 - pad_x - lw
         draw.text((x, y), line, font=font, fill=(255, 255, 255, 255))
         y += line_height + line_spacing
 
@@ -242,7 +243,24 @@ def stamp_image(
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     try:
-        stamped.save(output_path, quality=95, subsampling=0)
+        save_kwargs = {}
+        is_jpeg_output = output_path.suffix.lower() in {".jpg", ".jpeg"}
+
+        # For JPEG inputs/outputs, keep the original compression settings when possible.
+        if is_jpeg_output and source_format == "JPEG":
+            save_kwargs["quality"] = "keep"
+            save_kwargs["subsampling"] = "keep"
+            if source_quantization:
+                save_kwargs["qtables"] = source_quantization
+        elif is_jpeg_output:
+            # Non-JPEG source converted to JPEG output: keep sensible defaults.
+            save_kwargs["quality"] = 95
+            save_kwargs["subsampling"] = 0
+
+        if is_jpeg_output and source_exif:
+            save_kwargs["exif"] = source_exif
+
+        stamped.save(output_path, **save_kwargs)
     except Exception as e:
         print(f"  Error saving {output_path}: {e}", file=sys.stderr)
         return False

@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# run.sh — stamp photos with date and children's ages.
+# Run Linux and Mac.sh — stamp photos with date and children's ages.
 # Place this file next to photo_timestamp.py.
 # Put your photos in a folder called 'photos' in the same directory.
 # Edit the CHILDREN line below to match your kids' names and dates of birth.
-# Double-click or run with:  bash run.sh
+# Double-click or run with:  bash "Run Linux and Mac.sh"
 
 # ── Configuration ────────────────────────────────────────────────────────────
 CHILDREN=(

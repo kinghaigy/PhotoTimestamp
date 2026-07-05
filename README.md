@@ -17,7 +17,7 @@ Dick - 2 years, 10 months
 Harry - 7 months
 ```
 
-The text appears in the bottom-right corner of each photo on a semi-transparent dark background, sized to be readable at 33% of the image width. The font size stays consistent across all photos regardless of how many children were born at the time.
+The text appears in the bottom-right corner of each photo on a semi-transparent dark background, sized to be readable at 33% of the image short edge. This keeps text size visually consistent between portrait and landscape photos. The font size stays consistent across all photos regardless of how many children were born at the time.
 
 ---
 
@@ -43,7 +43,7 @@ The text appears in the bottom-right corner of each photo on a semi-transparent 
 
 ### Step 3 — Set up your children's names and birthdays
 
-Open the `run.bat` file in Notepad (right-click → Open with → Notepad).
+Open the `Run Windows.bat` file in Notepad (right-click → Open with → Notepad).
 
 Find this line near the top:
 
@@ -71,7 +71,7 @@ Create a folder called `photos` inside the project folder (it may already exist)
 
 ### Step 5 — Run it!
 
-Double-click `run.bat`.
+Double-click `Run Windows.bat`.
 
 A black window will appear showing progress. When it says **Finished!**, press Enter to close it.
 
@@ -97,7 +97,7 @@ If you see a version number, you're good. If not, download it from [python.org](
 Open Terminal, navigate to the project folder, and run:
 
 ```bash
-bash run.sh
+bash "Run Linux and Mac.sh"
 ```
 
 That's it. On first run it sets up the Python environment and installs everything needed automatically.
@@ -114,8 +114,8 @@ PhotoTimestamp/
 │   └── holiday.jpg
 ├── photos_stamped/       ← Stamped output appears here (created automatically)
 ├── photo_timestamp.py    ← The main script
-├── run.bat               ← Double-click to run on Windows
-├── run.sh                ← Run on Mac/Linux
+├── Run Windows.bat       ← Double-click to run on Windows
+├── Run Linux and Mac.sh  ← Run on Mac/Linux
 └── requirements.txt      ← Python dependencies (installed automatically)
 ```
 
@@ -178,4 +178,4 @@ The date is read from the photo's **EXIF metadata** — the hidden information y
 - [Pillow](https://python-pillow.org/) — image processing
 - [piexif](https://github.com/hMatoba/Piexif) — EXIF date reading
 
-Both are installed automatically by `run.bat` / `run.sh`.
+Both are installed automatically by `Run Windows.bat` / `Run Linux and Mac.sh`.

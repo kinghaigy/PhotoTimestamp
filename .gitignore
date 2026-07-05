@@ -8,5 +8,6 @@ __pycache__/
 .gui_prefs.json
 
 # Photos (user data, not part of the project)
-photos/
+photos/*
+!photos/PUT YOUR PHOTOS HERE.txt
 photos_stamped/
