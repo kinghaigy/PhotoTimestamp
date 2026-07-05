@@ -43,7 +43,7 @@ The text appears in the bottom-right corner of each photo on a semi-transparent 
 
 ### Step 3 — Set up your children's names and birthdays
 
-Open the `Run Windows.bat` file in Notepad (right-click → Open with → Notepad).
+Open the `Run Windows.bat` file in Notepad (right-click → Open with → Notepad). In some versions of windows, this can be done with right-click → Edit.
 
 Find this line near the top:
 
