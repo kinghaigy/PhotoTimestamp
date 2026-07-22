@@ -246,16 +246,13 @@ def stamp_image(
         save_kwargs = {}
         is_jpeg_output = output_path.suffix.lower() in {".jpg", ".jpeg"}
 
-        # For JPEG inputs/outputs, keep the original compression settings when possible.
-        if is_jpeg_output and source_format == "JPEG":
-            save_kwargs["quality"] = "keep"
-            save_kwargs["subsampling"] = "keep"
-            if source_quantization:
-                save_kwargs["qtables"] = source_quantization
-        elif is_jpeg_output:
-            # Non-JPEG source converted to JPEG output: keep sensible defaults.
+        # The stamped image is a newly composited object, so Pillow cannot use
+        # JPEG "keep" settings from the original image. Use explicit defaults.
+        if is_jpeg_output:
             save_kwargs["quality"] = 95
             save_kwargs["subsampling"] = 0
+            if source_quantization:
+                save_kwargs["qtables"] = source_quantization
 
         if is_jpeg_output and source_exif:
             save_kwargs["exif"] = source_exif
